@@ -1,0 +1,15 @@
+# ARM Core's dropbear patches
+1. Use /bin/sh instead of /usr/sbin/cli
+original:
+`0001A81B "/usr/sbin/cli",0`
+patched:
+`0001A81B "/bin/sh",0`
+reason: 
+So it spawns the shell instead of the proprietary cli app.
+2. Don't pass extraneous argvs to /bin/sh
+original:
+`000101E8 LDR     R2, =aL`
+patched:
+`000101E8 MOVS    R2, #0`
+reason:
+So ARGV is only 1 element long while calling execv(); otherwise it'll pass weird arguments that the original "cli" used.
