@@ -1,0 +1,147 @@
+From 1f9704b566ebfa9e5966603aaefbe7ca729cfffb Mon Sep 17 00:00:00 2001
+From: Santiago Hormazabal <santiagohssl@gmail.com>
+Date: Fri, 8 Mar 2024 20:01:08 -0300
+Subject: [PATCH 1/1] updates
+
+---
+ arch/arm/mach-avalanche/puma6/puma6_mtd.c | 2 +-
+ arch/x86/Kconfig                          | 2 +-
+ arch/x86/platform/ce2600/puma6_avm.c      | 7 ++++---
+ arch/x86/platform/ce2600/puma_mtd.c       | 4 ++--
+ drivers/usb/host/ehci-hcd.c               | 3 ++-
+ kernel/panic.c                            | 2 +-
+ kernel/printk.c                           | 4 ++--
+ kernel/watchdog.c                         | 2 +-
+ 8 files changed, 14 insertions(+), 12 deletions(-)
+
+diff --git a/arch/arm/mach-avalanche/puma6/puma6_mtd.c b/arch/arm/mach-avalanche/puma6/puma6_mtd.c
+index 4296fac6..788f9335 100644
+--- a/arch/arm/mach-avalanche/puma6/puma6_mtd.c
++++ b/arch/arm/mach-avalanche/puma6/puma6_mtd.c
+@@ -764,7 +764,7 @@ int __init puma6_mtd_init(void)
+         break;
+     default:
+         printk(KERN_EMERG "[%s] unknown HWRevision %d, assuming eMMC flash layout!\n", __func__, HWRevision);
+-        /* fall through */
++	return 0;
+     case 199:
+     case 213:
+     case 231:
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index bc814d3c..585cd4dc 100755
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -463,7 +463,7 @@ config ARCH_GEN3
+ 	default y
+ 	select OF
+ 	select OF_EARLY_FLATTREE
+-	select AVM_PROM_CONFIG
++#	select AVM_PROM_CONFIG
+ 
+ endmenu
+ 
+diff --git a/arch/x86/platform/ce2600/puma6_avm.c b/arch/x86/platform/ce2600/puma6_avm.c
+index 509ad06f..b6f9c25f 100644
+--- a/arch/x86/platform/ce2600/puma6_avm.c
++++ b/arch/x86/platform/ce2600/puma6_avm.c
+@@ -65,12 +65,13 @@ int init_wlan_dect_config(struct mtd_info *mtd)
+     }
+ 
+     prom_mtd.mtd = mtd;
+-    ret = avm_prom_config_add_mtd_device(&prom_mtd);
+-    if (ret) {
++//    ret = avm_prom_config_add_mtd_device(&prom_mtd);
++//    if (ret) {
++
+         pr_err("%s: Error registering mtd: %d\n", __func__, ret);
+         prom_mtd.mtd = NULL;
+         return ret;
+-    }
++//    }
+ 
+     i = result = 0;
+     while(entry_len > 0 && i < PUMA_MAX_CONFIG_ENTRIES){
+diff --git a/arch/x86/platform/ce2600/puma_mtd.c b/arch/x86/platform/ce2600/puma_mtd.c
+index c9642059..c886d230 100644
+--- a/arch/x86/platform/ce2600/puma_mtd.c
++++ b/arch/x86/platform/ce2600/puma_mtd.c
+@@ -637,7 +637,7 @@ static void puma6_mtd_add_notifier(struct mtd_info *mtd)
+                 sprintf(root_device, "/dev/mtdblock%d", mtd->index);
+                 DEBUG_MTD("root device: %s (%s)\n", root_device, mtd->name);
+ 
+-                setup_root_dev_if_possible(root_device);
++//                setup_root_dev_if_possible(root_device);
+             }
+         }
+         type = GUID_RAM_FILESYS;
+@@ -732,7 +732,7 @@ int __init puma6_mtd_init(void)
+         break;
+     default:
+         printk(KERN_EMERG "[%s] unknown HWRevision %d, assuming eMMC flash layout!\n", __func__, HWRevision);
+-        /* fall through */
++        return 0;
+     case 199:
+     case 213:
+     case 231:
+diff --git a/drivers/usb/host/ehci-hcd.c b/drivers/usb/host/ehci-hcd.c
+index 7aecd403..92004b33 100755
+--- a/drivers/usb/host/ehci-hcd.c
++++ b/drivers/usb/host/ehci-hcd.c
+@@ -1306,7 +1306,8 @@ static int __init ehci_hcd_init(void)
+ 	}
+ #endif
+ 
+-#ifdef CONFIG_X86
++//#ifdef CONFIG_X86
++#if 0
+ 	{
+ 		if(avm_get_hw_config(AVM_HW_CONFIG_VERSION, "gpio_avm_usb_pwr_en0", &gpio_usb_power, NULL) == 0) {
+ 			avm_gpio_ctrl(gpio_usb_power, GPIO_PIN, GPIO_OUTPUT_PIN);
+diff --git a/kernel/panic.c b/kernel/panic.c
+index 85ea1ade..71095424 100755
+--- a/kernel/panic.c
++++ b/kernel/panic.c
+@@ -94,7 +94,7 @@ NORET_TYPE void panic(const char * fmt, ...)
+ 	printk(KERN_EMERG "Kernel panic - not syncing: %s\n",buf);
+ #ifdef CONFIG_DEBUG_BUGVERBOSE
+ 	dump_stack();
+-	dump_event_node_stats(NULL);
++	//dump_event_node_stats(NULL);
+ #endif
+ 
+ 	/*
+diff --git a/kernel/printk.c b/kernel/printk.c
+index c69dc1bb..6b4a37a4 100755
+--- a/kernel/printk.c
++++ b/kernel/printk.c
+@@ -1019,12 +1019,12 @@ asmlinkage int vprintk(const char *fmt, va_list args)
+ 				tlen = sprintf(tbuf, "[%5lu.%06lu] ",
+ 						(unsigned long) t,
+ 						nanosec_rem / 1000);
+-/*--- #if defined(CONFIG_AVM_DEBUG) && defined(CONFIG_SMP) ---*/
++#if defined(CONFIG_AVM_DEBUG) && defined(CONFIG_SMP)
+                 if(force_avm_console) {
+                     tlen--;
+                     tlen += sprintf(&tbuf[tlen], "[%x]", raw_smp_processor_id());
+                 }
+-/*--- #endif ---*//*--- #if defined(CONFIG_AVM_DEBUG) && defined(CONFIG_SMP) ---*/
++#endif //*--- #if defined(CONFIG_AVM_DEBUG) && defined(CONFIG_SMP)
+ 				for (tp = tbuf; tp < tbuf + tlen; tp++)
+ 					emit_log_char(*tp);
+ 				printed_len += tlen;
+diff --git a/kernel/watchdog.c b/kernel/watchdog.c
+index 795322e6..6160431e 100755
+--- a/kernel/watchdog.c
++++ b/kernel/watchdog.c
+@@ -223,7 +223,7 @@ static void watchdog_overflow_callback(struct perf_event *event, int nmi,
+ 		if (__this_cpu_read(hard_watchdog_warn) == true)
+ 			return;
+ 
+-		printk_avm_console_bend(false);
++		//printk_avm_console_bend(false);
+ 		console_verbose();
+ 
+ 		pr_emerg("Watchdog detected hard LOCKUP on cpu %d\n",
+-- 
+2.30.2
+

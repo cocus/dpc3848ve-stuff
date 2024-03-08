@@ -38,7 +38,7 @@ echo -e "root\nroot" | passwd root
 
 At this point, we should reboot the modem once again. This time, let the modem finish booting. You'll see that this time you can still access the console!
 
-Taking advantage of this, we can start a ssh server right away. However, the bundled dropbear server ALWAYS start a custom and proprietary CLI ("/usr/sbin/cli"). We don't want that, we want a shell. So, in order to fix this, it's possible to get the bundled dropbear binary, by uploading it to a tftp server (since no ssh, scp, ftp, etc is available), then patchding it so it starts "/bin/sh" after logon.
+Taking advantage of this, we can start a ssh server right away. However, the bundled dropbear server ALWAYS start a custom and proprietary CLI ("/usr/sbin/cli"). We don't want that, we want a shell. So, in order to fix this, it's possible to get the bundled dropbear binary, by uploading it to a tftp server (since no ssh, scp, ftp, etc is available), then patching it so it starts "/bin/sh" after logon.
 Not only that, but there's a nasty addition to the program, where it passes multiple arguments to the shell, namely "-l", "-hostEntity" and the remote IP. In order to fix this, I just patched a single assembly line, which instead of loading the pointer of the string literal "-l", it loads a null value; effectively voiding the rest of the arguments passed to the process.
 If you want, take the `dropbear_patched` binary from this repo, place it on a tftp or web server, and use tftp or wget to downlod it. Place the file in `/nvram/dropbear`, and mark it as execcutable with `chmod +x /nvram/dropbear`.
 At this point, you can reboot once more, and after the modem finishes booting, you'll have a new ssh server running at port `6666`.
@@ -92,7 +92,7 @@ shell> ord4 0xdf9fa004 0xB (write 0x0000000b to 0xdf9fa004)
 shell> ord4 0xC80D0000 0x03000000 (write 0x03000000 to 0xC80D0000)
 shell> load -m 0x200000 -i a -t emmc (load from emmc, from the active image, to memory address 0x200000)
 get Active Image info success:240000, 400000, 1, 1, 3
-eMMC kernel command:  root=/dev/mmcblk0p3 
+eMMC kernel command:  root=/dev/mmcblk0p3
 Load data from emmc
 Load done.
 shell> bootkernel -b 0x200000 "console=ttyS0,115200 ip=static memmap=exactmap memmap=128K@128K memmap=240M@1M" (boots a kernel from memory address 0x200000 with the given argument)
@@ -214,7 +214,64 @@ As a side note, while on this IntelCE "BIOS" shell, I wasn't able to make use of
 
 # Build of Images
 ## ATOM Core Linux
-TODO!
+> NOTE: this is just the kernel, and it's a WIP.
+
+### Building the kernel
+Using [this firmware](https://osp.avm.de/fritzbox/fritzbox-6490-cable/source-files-FRITZ.Box_6490_Cable-x86-07.29.tar.gz "this firmware") for another device, and using the attached .config file, I was able to build a basic toolchain that lets the kernel be built. In theory, what I did was:
+```
+mkdir intelpuma
+cd intelpuma
+wget https://osp.avm.de/fritzbox/fritzbox-6490-cable/source-files-FRITZ.Box_6490_Cable-x86-07.29.tar.gz
+tar xf source-files-FRITZ.Box_6490_Cable-x86-07.29.tar.gz
+cd host-sources
+tar xf buildroot-2018.11.4.tar.bz2
+cp ../../conf/buildroot.config.x86 .config
+make
+# stop the build when it starts downloading the kernel sources, no need to continue for now
+
+cd ../../
+
+# run this once!
+export PATH=$PATH:$(pwd)/host-sources/buildroot-2018.11.4/output/host/bin
+
+cd sources/kernel/linux
+# copy the tweaked.config file here as .config
+# also copy the kernel.patch as kernel.patch
+
+# apply the patches by running:
+patch < kernel.patch
+
+# build kernel
+make -j $(nproc)
+
+# resulting image will be at arch/x86/boot/bzImage
+```
+
+This source doesn't seem to correlate to the same product as this modem, so I had to severely cripple the "cablemodem" functionality (specially EVERYTHING related to AVM).
+Remember that this is a WIP!.
+
+#### Issues related to newer compilers and python
+Fix for newer compilers: https://github.com/BPI-SINOVOIP/BPI-M4-bsp/issues/4#issuecomment-1296184876
+Fix for newer python: Use the diffconfig file from this repo, and replace it on `scripts/diffconfig`.
+
+### Loading the kernel through ymodem
+Since I can't make the tftp work on the "IntelCE" shell/BIOS, the only non-destructive way of testing images is to load them through ymodem. Yes, it's slow, but I don't know how to change the baudrate from the shell (yet).
+I'll use `minicom` because it's easy to send stuff through ymodem. Power off the modem, connect your serial adapter to the "ATOM" header, then run:
+```
+# start minicom
+minicom -D /dev/ttyUSB0 -b 115200
+
+# at this moment, turn on the modem, and start hitting the ENTER key until you see "shell>"
+
+ord4 0xdf9fa004 0xB
+ord4 0xC80D0000 0x03000000
+ymodem 0x200000
+
+# at this moment, use minicom to send the bzImage built on the previous step. use CTRL+A, S and select ymodem. to select the file, navigate and use the spacebar to select and enter to send.
+
+# when it finishes, return to the shell prompt and boot the system!
+bootkernel -b 0x200000 "console=ttyS0,115200 ip=static memmap=exactmap memmap=128K@128K memmap=240M@1M root=/dev/mmcblk0p3"
+```
 
 ## ARM Core Linux
 TODO! (although I kinda don't think it's required if you want to use the modem as a Wireless AP/Station/NAS).
