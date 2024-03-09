@@ -225,9 +225,16 @@ wget https://osp.avm.de/fritzbox/fritzbox-6490-cable/source-files-FRITZ.Box_6490
 tar xf source-files-FRITZ.Box_6490_Cable-x86-07.29.tar.gz
 cd host-sources
 tar xf buildroot-2018.11.4.tar.bz2
+cd buildroot-2018.11.4
 cp ../../conf/buildroot.config.x86 .config
-make
-# stop the build when it starts downloading the kernel sources, no need to continue for now
+sed -i 's#BR2_DEFCONFIG="/DOES/NOT/EXIST"#BR2_DEFCONFIG="$(BASE_DIR)/"#' .config
+sed -i 's#BR2_DL_DIR="/DOES/NOT/EXIST"#BR2_DL_DIR="$(BASE_DIR)/downloads"#' .config
+mkdir -p downloads
+# enter menuconfig, don't change anything, just save and exit
+make menuconfig
+# now build theh toolchain
+make toolchain
+# stop it when it starts downloading the linux sources!
 
 cd ../../
 
@@ -238,8 +245,10 @@ cd sources/kernel/linux
 # copy the tweaked.config file here as .config
 # also copy the kernel.patch as kernel.patch
 
-# apply the patches by running:
+# apply the patches (or use git apply)
 patch < kernel.patch
+
+# edit .config and disable AVM_PROM
 
 # build kernel
 make -j $(nproc)
@@ -251,7 +260,8 @@ This source doesn't seem to correlate to the same product as this modem, so I ha
 Remember that this is a WIP!.
 
 #### Issues related to newer compilers and python
-Fix for newer compilers: https://github.com/BPI-SINOVOIP/BPI-M4-bsp/issues/4#issuecomment-1296184876
+Fix for newer compilers on lexer files: https://github.com/BPI-SINOVOIP/BPI-M4-bsp/issues/4#issuecomment-1296184876
+Fix for newer compilers and gcc's reload1.c: edit the file with the error, move the condition after the && to another #ifdef and add a new #endif right below the nearest #endif.
 Fix for newer python: Use the diffconfig file from this repo, and replace it on `scripts/diffconfig`.
 
 ### Loading the kernel through ymodem
