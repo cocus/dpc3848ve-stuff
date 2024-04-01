@@ -212,6 +212,24 @@ As a side note, while on this IntelCE "BIOS" shell, I wasn't able to make use of
     consolesecurity=disable
 
 
+# GPIO mapping
+## Inputs
+GPIO 59 = back button WiFi
+GPIO 37 = WPS button
+
+## Outputs
+GPIO 41/96 = marvell phy reset
+GPIO 88 = PCIe power
+GPIO 100 = PCIe reset
+
+GPIO 50 = DS orange (inverted)
+GPIO 51 = Power (inverted)
+GPIO 58 = OnLine orange (inverted)
+GPIO 61 = US orange (inverted)
+GPIO 69 = DS green (inverted)
+GPIO 98 = US green (inverted)
+GPIO 116 = OnLine green (inverted)
+
 # Build of Images
 ## ATOM Core Linux
 > NOTE: this is just the kernel, and it's a WIP.
